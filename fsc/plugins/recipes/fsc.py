@@ -29,8 +29,8 @@ class CalculateFRCBase(ModuleBase):
     multiprocessing =  Bool(True)
     plot_graphs = Bool()
     
-    output_fft_image_a = Output('FRC_fft_image_a')
-    output_fft_image_b = Output('FRC_fft_image_b')
+#    output_fft_image_a = Output('FRC_fft_image_a')
+#    output_fft_image_b = Output('FRC_fft_image_b')
     output_fft_images_cc = Output('FRC_fft_images_cc')
     output_frc_dict = Output('FRC_dict')
     output_frc_plot = Output('FRC_plot')
@@ -110,20 +110,24 @@ class CalculateFRCBase(ModuleBase):
         im2_fft_power = np.multiply(ft_images[1], np.conj(ft_images[1]))        
         im12_fft_power = np.multiply(ft_images[0], np.conj(ft_images[1]))                
         
-#        fft_ims = ImageStack(data=np.stack([np.fft.fftshift(im1_fft_power),
-#                                            np.fft.fftshift(im2_fft_power),
-#                                            np.fft.fftshift(im12_fft_power)], axis=-1), mdh=mdh)
-#        self._namespace[self.output_fft_images] = fft_ims
-        self._namespace[self.output_fft_image_a] = ImageStack(data=np.fft.fftshift(im1_fft_power), titleStub="ImageA_FFT")
-        self._namespace[self.output_fft_image_b] = ImageStack(data=np.fft.fftshift(im2_fft_power), titleStub="ImageB_FFT")
-        self._namespace[self.output_fft_images_cc] = ImageStack(data=np.fft.fftshift(im12_fft_power), titleStub="ImageA_Image_B_FFT_CC")
+##        fft_ims = ImageStack(data=np.stack([np.fft.fftshift(im1_fft_power),
+##                                            np.fft.fftshift(im2_fft_power),
+##                                            np.fft.fftshift(im12_fft_power)], axis=-1), mdh=mdh)
+##        self._namespace[self.output_fft_images] = fft_ims
+#        self._namespace[self.output_fft_image_a] = ImageStack(data=np.fft.fftshift(im1_fft_power), titleStub="ImageA_FFT")
+#        self._namespace[self.output_fft_image_b] = ImageStack(data=np.fft.fftshift(im2_fft_power), titleStub="ImageB_FFT")
+#        self._namespace[self.output_fft_images_cc] = ImageStack(data=np.fft.fftshift(im12_fft_power), titleStub="ImageA_Image_B_FFT_CC")
+        
+        self._namespace[self.output_fft_images_cc] = ImageStack(data=np.stack([np.atleast_3d(np.fft.fftshift(im1_fft_power)),
+               np.atleast_3d(np.fft.fftshift(im2_fft_power)),
+               np.atleast_3d(np.fft.fftshift(im12_fft_power))], 3), titleStub="ImageA_Image_FFT_CC")
             
         if self.plot_graphs:
             from PYME.DSView.dsviewer import ViewIm3D, View3D
-            ViewIm3D(self._namespace[self.output_fft_image_a])
-            ViewIm3D(self._namespace[self.output_fft_image_b])
+#            ViewIm3D(self._namespace[self.output_fft_image_a])
+#            ViewIm3D(self._namespace[self.output_fft_image_b])
             ViewIm3D(self._namespace[self.output_fft_images_cc])
-            View3D(np.fft.fftshift(im_R))
+#            View3D(np.fft.fftshift(im_R))
             
         
         im1_fft_flat_res = CalculateFRCBase.BinData(im_R.flatten(), im1_fft_power.flatten(), statistic='mean', bins=201)
@@ -425,7 +429,7 @@ class CalculateFRCFromLocs(CalculateFRCBase):
     
     """
     inputName = Input('Localizations')
-    split_method = Enum(['halves_random', 'halves_time', 'halves_10_time_chunk', 'fixed_time', 'fixed_10_time_chunk'])    
+    split_method = Enum(['halves_random', 'halves_time', 'halves_100_time_chunk', 'halves_10_time_chunk', 'fixed_time', 'fixed_10_time_chunk'])    
     pixel_size_in_nm = Int(5)
 #    pre_filter = Enum(['Tukey_1/8', None])
 #    frc_smoothing_func = Enum(['Cubic Spline', 'Sigmoid', None])
@@ -503,12 +507,17 @@ class CalculateFRCFromLocs(CalculateFRCBase):
             mask[sort_arg[:len(sort_arg)/2]] = 1
         elif self.split_method == 'halves_random':
             mask[:len(mask)/2] = 1
-            np.random.shuffle(mask)
+            np.random.shuffle(mask)            
+        elif self.split_method == 'halves_100_time_chunk':
+            sort_arg = np.argsort(mapped_pipeline['t'])
+            chunksize = mask.shape[0] / 100.0
+            for i in range(50):
+                mask[sort_arg[int(np.round(i*2*chunksize)):int(np.round((i*2+1)*chunksize))]] = 1
         elif self.split_method == 'halves_10_time_chunk':
             sort_arg = np.argsort(mapped_pipeline['t'])
             chunksize = mask.shape[0] * 0.1
-            for i in xrange(5):
-                mask[sort_arg[int(i*2*chunksize):int((i*2+1)*chunksize)]] = 1
+            for i in range(5):
+                mask[sort_arg[int(np.round(i*2*chunksize)):int(np.round((i*2+1)*chunksize))]] = 1
         elif self.split_method == 'fixed_time':
             time_cutoff = (mapped_pipeline['t'].ptp() + 1) // 2 + mapped_pipeline['t'].min()
             mask[mapped_pipeline['t'] < time_cutoff] = 1
