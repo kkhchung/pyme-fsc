@@ -25,12 +25,16 @@ class CalculateFRCBase(ModuleBase):
     frc_smoothing_func = Enum(['Cubic Spline', 'Sigmoid', None])
     multiprocessing =  Bool(True)
     plot_graphs = Bool()
+    cubic_smoothing  = Float(0.01)
+    
+    save_path = File()
     
 #    output_fft_image_a = Output('FRC_fft_image_a')
 #    output_fft_image_b = Output('FRC_fft_image_b')
     output_fft_images_cc = Output('FRC_fft_images_cc')
     output_frc_dict = Output('FRC_dict')
     output_frc_plot = Output('FRC_plot')
+    output_frc_raw = Output('FRC_raw')
     
     def execute(self):
         raise Exception("Base class not fully implemented")
@@ -115,16 +119,20 @@ class CalculateFRCBase(ModuleBase):
 #        self._namespace[self.output_fft_image_b] = ImageStack(data=np.fft.fftshift(im2_fft_power), titleStub="ImageB_FFT")
 #        self._namespace[self.output_fft_images_cc] = ImageStack(data=np.fft.fftshift(im12_fft_power), titleStub="ImageA_Image_B_FFT_CC")
         
-        self._namespace[self.output_fft_images_cc] = ImageStack(data=np.stack([np.atleast_3d(np.fft.fftshift(im1_fft_power)),
-               np.atleast_3d(np.fft.fftshift(im2_fft_power)),
-               np.atleast_3d(np.fft.fftshift(im12_fft_power))], 3), titleStub="ImageA_Image_FFT_CC")
+        try:
+            self._namespace[self.output_fft_images_cc] = ImageStack(data=np.stack([np.atleast_3d(np.fft.fftshift(im1_fft_power)),
+                   np.atleast_3d(np.fft.fftshift(im2_fft_power)),
+                   np.atleast_3d(np.fft.fftshift(im12_fft_power))], 3), titleStub="ImageA_Image_FFT_CC")
             
-        if self.plot_graphs:
-            from PYME.DSView.dsviewer import ViewIm3D, View3D
-#            ViewIm3D(self._namespace[self.output_fft_image_a])
-#            ViewIm3D(self._namespace[self.output_fft_image_b])
-            ViewIm3D(self._namespace[self.output_fft_images_cc])
-#            View3D(np.fft.fftshift(im_R))
+            if self.plot_graphs:
+                from PYME.DSView.dsviewer import ViewIm3D, View3D
+    #            ViewIm3D(self._namespace[self.output_fft_image_a])
+    #            ViewIm3D(self._namespace[self.output_fft_image_b])
+                ViewIm3D(self._namespace[self.output_fft_images_cc])
+    #            View3D(np.fft.fftshift(im_R))
+            
+        except Exception as e:
+            print (e)
             
         
         im1_fft_flat_res = CalculateFRCBase.BinData(im_R.flatten(), im1_fft_power.flatten(), statistic='mean', bins=201)
@@ -133,13 +141,13 @@ class CalculateFRCBase(ModuleBase):
         
         corr = np.real(im12_fft_flat_res.statistic) / np.sqrt(np.abs(im1_fft_flat_res.statistic*im2_fft_flat_res.statistic))
         
-        smoothed_frc = self.smooth_frc(im12_fft_flat_res.bin_edges[:-1], corr)
+        smoothed_frc = self.smooth_frc(im12_fft_flat_res.bin_edges[:-1], corr, self.cubic_smoothing)
         
-        res = self.calculate_threshold(im12_fft_flat_res.bin_edges[:-1], corr, smoothed_frc, im12_fft_flat_res.counts)
+        res, rawdata = self.calculate_threshold(im12_fft_flat_res.bin_edges[:-1], corr, smoothed_frc, im12_fft_flat_res.counts)
         
-        return res
+        return res, rawdata
     
-    def smooth_frc(self, freq, corr):
+    def smooth_frc(self, freq, corr, cubic_smoothing):
         if self.frc_smoothing_func is None:
             interp_frc = interpolate.interp1d(freq, corr, kind='next', )
             return interp_frc
@@ -151,7 +159,9 @@ class CalculateFRCBase(ModuleBase):
             return partial(func, n=fit_res.x[0], c=fit_res.x[1])
         elif self.frc_smoothing_func == "Cubic Spline":
             # smoothed so that average deviation loss is less than 0.2% of original. Somewhat arbitrary but probably not totally unreasonable since FRC is bounded 0 to 1.
-            interp_frc = interpolate.UnivariateSpline(freq, corr, k=3, s=len(freq)*(0.002*np.var(corr)))
+#            interp_frc = interpolate.UnivariateSpline(freq, corr, k=3, s=len(freq)*(0.002*np.var(corr)))
+#            interp_frc = interpolate.UnivariateSpline(freq, corr, k=3, s=(0.05*np.std(corr)))
+            interp_frc = interpolate.UnivariateSpline(freq, corr, k=3, s=cubic_smoothing)
 
             return interp_frc            
     
@@ -214,7 +224,16 @@ class CalculateFRCBase(ModuleBase):
         
         self._namespace[self.output_frc_plot] = fig
         
-        return res
+        rawdata = {'freq':freq, 'corr':corr, 'smooth':corr_func(x=freq), '1/7':np.ones_like(freq)/7, '3 sigma':3*sigma_spl(freq), '1/2 bit':half_bit_spl(freq)}
+        
+        return res, rawdata
+    
+    def save_to_file(self, namespace):
+        if self.save_path is not "":
+            try:
+                np.savez_compressed(self.save_path, raw=namespace[self.output_frc_raw], results=namespace[self.output_frc_dict])
+            except Exception as e:
+                raise e
     
     @staticmethod
     def BinData(indexes, data, statistic='mean', bins=10):
@@ -324,9 +343,10 @@ class CalculateFRCFromImages(CalculateFRCBase):
         
         image_pair = self.preprocess_images(image_pair)            
        
-        frc_res = self.calculate_FRC_from_images(image_pair, None)
+        frc_res, rawdata = self.calculate_FRC_from_images(image_pair, None)
         
         namespace[self.output_frc_dict] = frc_res
+        namespace[self.output_frc_raw] = rawdata
         
         if self.multiprocessing:
             self._pool.close()
@@ -334,13 +354,15 @@ class CalculateFRCFromImages(CalculateFRCBase):
         
         mProfile.profileOff()
         mProfile.report()
+        
+        self.save_to_file(namespace)
     
 
 @register_module('FSCFromLocs')
 class CalculateFRCFromLocs(CalculateFRCBase):
     inputName = Input('Localizations')
     split_method = Enum(['halves_random', 'halves_time', 'halves_100_time_chunk', 'halves_10_time_chunk', 'fixed_time', 'fixed_10_time_chunk'])    
-    pixel_size_in_nm = Int(5)
+    pixel_size_in_nm = Float(5)
 #    pre_filter = Enum(['Tukey_1/8', None])
 #    frc_smoothing_func = Enum(['Cubic Spline', 'Sigmoid', None])
 #    plot_graphs = Bool()
@@ -394,13 +416,14 @@ class CalculateFRCFromLocs(CalculateFRCBase):
             from PYME.DSView.dsviewer import ViewIm3D
             ViewIm3D(ims)
         
-        frc_res = self.calculate_FRC_from_images(image_pair, pipeline.mdh)
+        frc_res, rawdata = self.calculate_FRC_from_images(image_pair, pipeline.mdh)
         
 #        smoothed_frc = self.SmoothFRC(frc_freq, frc_corr)
 #        
 #        self.CalculateThreshold(frc_freq, frc_corr, smoothed_frc)
         
         namespace[self.output_frc_dict] = frc_res
+        namespace[self.output_frc_raw] = rawdata
         
         if self.multiprocessing:
             self._pool.close()
@@ -408,6 +431,8 @@ class CalculateFRCFromLocs(CalculateFRCBase):
         
         mProfile.profileOff()
         mProfile.report()
+        
+        self.save_to_file(namespace)
         
     def generate_image_pair(self, mapped_pipeline):
         # Split localizations into 2 sets
