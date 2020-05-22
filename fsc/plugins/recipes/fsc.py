@@ -21,6 +21,9 @@ from scipy import optimize, interpolate
 from functools import partial
 
 class CalculateFRCBase(ModuleBase):
+    """
+    Base class. Refer to derived classes for docstrings.
+    """
     pre_filter = Enum(['Tukey_1/8', None])
     frc_smoothing_func = Enum(['Cubic Spline', 'Sigmoid', None])
     multiprocessing =  Bool(True)
@@ -275,6 +278,50 @@ class CalculateFRCBase(ModuleBase):
     
 @register_module('FSCFromImages')
 class CalculateFRCFromImages(CalculateFRCBase):
+    """
+    Take a pair of images and calculates the fourier shell/ring correlation (FSC / FRC).
+    
+    Inputs
+    ------
+    input_image_a : ImageStack
+        First of two images.
+        
+    Outputs
+    -------
+    output_fft_image_a : ImageStack
+        Fast Fourier transform of the first image.
+    output_fft_image_b : ImageStack
+        Fast Fourier transform of the second image.
+    output_fft_images_cc : ImageStack
+        Fast Fourier transform cross-correlation.
+    output_frc_dict : dict
+        FSC/FRC results.
+    output_frc_plot : Plot
+        Output plot of the FSC / FRC curve.
+    
+    Parameters
+    ----------
+    image_b_path : File
+        File path of the second of the two images.
+    c_channel : int
+        Color channel of the images to use.
+    image_a_z : int
+        Ignored unless flatten_z is True. In which case either select the z plane to use (>=0) or performs a maximum project (<0) for the first image.
+    image_b_z : int
+        Ignored unless flatten_z is True. In which case either select the z plane to use (>=0) or performs a maximum project (<0) for the second image.
+    flatten_z : Bool
+        If enabled ignores z information and only performs a FRC.
+    pre_filter : string
+        Methods to filter the images prior to Fourier transform.
+    frc_smoothing_func : string
+        Methods to smooth the FSC / FRC curve.
+    multiprocessing : Bool
+        Enables multiprocessing.
+    plot_graphs : Bool
+        Show graphs.
+    
+    """
+    
     input_image_a = Input('input')
 #    image_a_dim = Int(2)
 #    image_a_index = Int(0)
@@ -360,6 +407,49 @@ class CalculateFRCFromImages(CalculateFRCBase):
 
 @register_module('FSCFromLocs')
 class CalculateFRCFromLocs(CalculateFRCBase):
+    """
+    Generates a pair of images from localization data and calculates the fourier shell/ring correlation (FSC / FRC).
+    
+    Inputs
+    ------
+    inputName : TabularBase
+        Localization data.
+        
+    Outputs
+    -------
+    outputName : TabularBase
+        Localization data labeled with how it was divided (FRC_group).
+    output_images : ImageStack
+        Pair of 2D or 3D histogram rendered images.
+    output_fft_image_a : ImageStack
+        Fast Fourier transform of the first image.
+    output_fft_image_b : ImageStack
+        Fast Fourier transform of the second image.
+    output_fft_images_cc : ImageStack
+        Fast Fourier transform cross-correlation.
+    output_frc_dict : dict
+        FSC/FRC results.
+    output_frc_plot : Plot
+        Output plot of the FSC / FRC curve.
+    
+    Parameters
+    ----------
+    split_method : string
+        Different methods of dividing data into halves.
+    pixel_size_in_nm : int
+        Pixel size used for rendering the images.
+    flatten_z : Bool
+        If enabled ignores z information and only performs a FRC.
+    pre_filter : string
+        Methods to filter the images prior to Fourier transform.
+    frc_smoothing_func : string
+        Methods to smooth the FSC / FRC curve.
+    multiprocessing : Bool
+        Enables multiprocessing.
+    plot_graphs : Bool
+        Show graphs.
+    
+    """
     inputName = Input('Localizations')
     split_method = Enum(['halves_random', 'halves_time', 'halves_100_time_chunk', 'halves_10_time_chunk', 'fixed_time', 'fixed_10_time_chunk'])    
     pixel_size_in_nm = Float(5)
