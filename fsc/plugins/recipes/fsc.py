@@ -336,9 +336,8 @@ class CalculateFRCFromImages(CalculateFRCBase):
     def execute(self, namespace):
         self._namespace = namespace
         import multiprocessing
-        from PYME.util import mProfile
-        
-        mProfile.profileOn(["frc.py"])
+#        from PYME.util import mProfile        
+#        mProfile.profileOn(["frc.py"])
         
         if self.multiprocessing:
             proccess_count = np.clip(2, 1, multiprocessing.cpu_count()-1)
@@ -399,8 +398,8 @@ class CalculateFRCFromImages(CalculateFRCBase):
             self._pool.close()
             self._pool.join()
         
-        mProfile.profileOff()
-        mProfile.report()
+#        mProfile.profileOff()
+#        mProfile.report()
         
         self.save_to_file(namespace)
     
@@ -468,9 +467,8 @@ class CalculateFRCFromLocs(CalculateFRCBase):
     def execute(self, namespace):
         self._namespace = namespace
         import multiprocessing
-        from PYME.util import mProfile
-        
-        mProfile.profileOn(["frc.py"])
+#        from PYME.util import mProfile        
+#        mProfile.profileOn(["frc.py"])
         
         if self.multiprocessing:
             proccess_count = np.clip(2, 1, multiprocessing.cpu_count()-1)
@@ -519,8 +517,8 @@ class CalculateFRCFromLocs(CalculateFRCBase):
             self._pool.close()
             self._pool.join()
         
-        mProfile.profileOff()
-        mProfile.report()
+#        mProfile.profileOff()
+#        mProfile.report()
         
         self.save_to_file(namespace)
         

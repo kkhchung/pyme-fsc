@@ -32,6 +32,7 @@ class FourierShellCorrelation:
             print(recipe.namespace[frc.output_frc_dict])
 
 def Plug(dsviewer):
-    """Plugs this module into the gui"""
-    dsviewer.fsc = FourierShellCorrelation(dsviewer)
-    print("plugging FourierShellCorrelation as visFr.fsc")
+#    """Plugs this module into the gui"""
+#    dsviewer.fsc = FourierShellCorrelation(dsviewer)
+#    print("plugging FourierShellCorrelation as visFr.fsc")
+    pass

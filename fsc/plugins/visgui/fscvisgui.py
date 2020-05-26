@@ -36,6 +36,7 @@ class FourierShellCorrelation:
             recipe.trait_set(execute_on_invalidation=True)
             
 def Plug(visFr):
-    """Plugs this module into the gui"""
-    visFr.fsc = FourierShellCorrelation(visFr)
-    print("plugging FourierShellCorrelation as visFr.fsc")
+#    """Plugs this module into the gui"""
+#    visFr.fsc = FourierShellCorrelation(visFr)
+#    print("plugging FourierShellCorrelation as visFr.fsc")
+    pass
