@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from PYME.IO import tabular, MetaDataHandler
 from PYME.IO.image import ImageStack
+from PYME.recipes.graphing import Plot
 import os
 from collections import OrderedDict
 from matplotlib.pyplot import *
@@ -27,7 +28,7 @@ class CalculateFRCBase(ModuleBase):
     pre_filter = Enum(['Tukey_1/8', None])
     frc_smoothing_func = Enum(['Cubic Spline', 'Sigmoid', None])
     multiprocessing =  Bool(True)
-    plot_graphs = Bool()
+#    plot_graphs = Bool()
     cubic_smoothing  = Float(0.01)
     
     save_path = File()
@@ -127,12 +128,12 @@ class CalculateFRCBase(ModuleBase):
                    np.atleast_3d(np.fft.fftshift(im2_fft_power)),
                    np.atleast_3d(np.fft.fftshift(im12_fft_power))], 3), titleStub="ImageA_Image_FFT_CC")
             
-            if self.plot_graphs:
-                from PYME.DSView.dsviewer import ViewIm3D, View3D
-    #            ViewIm3D(self._namespace[self.output_fft_image_a])
-    #            ViewIm3D(self._namespace[self.output_fft_image_b])
-                ViewIm3D(self._namespace[self.output_fft_images_cc])
-    #            View3D(np.fft.fftshift(im_R))
+#            if self.plot_graphs:
+#                from PYME.DSView.dsviewer import ViewIm3D, View3D
+#    #            ViewIm3D(self._namespace[self.output_fft_image_a])
+#    #            ViewIm3D(self._namespace[self.output_fft_image_b])
+#                ViewIm3D(self._namespace[self.output_fft_images_cc])
+#    #            View3D(np.fft.fftshift(im_R))
             
         except Exception as e:
             print (e)
@@ -188,44 +189,47 @@ class CalculateFRCBase(ModuleBase):
 #        fsc_max = np.max([fsc_0143.x[0], fsc_2sigma.x[0], fsc_3sigma.x[0], fsc_5sigma.x[0], fsc_half_bit.x[0]])
 #        axes[1].set_xlim(0, np.min([2*fsc_max, im12_fft_flat_res.bin_edges[-1]]))
         
-        if not self.plot_graphs:
-            ioff()
+#        if not self.plot_graphs:
+#            ioff()
+        
+        def plot():
+            frc_text = ""
+            fig, axes = subplots(1,2,figsize=(10,4))
+            axes[0].plot(freq, corr)
+            axes[0].plot(freq, corr_func(x=freq))
             
-        frc_text = ""
-        fig, axes = subplots(1,2,figsize=(10,4))
-        axes[0].plot(freq, corr)
-        axes[0].plot(freq, corr_func(x=freq))
+            axes[0].axhline(0.143, ls='--', color='red')
+            axes[0].axvline(fsc_0143.x[0], ls='--', color='red', label='1/7')
+            frc_text += "\n1/7:  {:.2f} nm".format(1./fsc_0143.x[0])
+     
+            axes[0].plot(freq, 3*sigma_spl(freq), ls='--', color='pink')
+            axes[0].axvline(fsc_3sigma.x[0], ls='--', color='pink', label='3 sigma')
+            frc_text += "\n3 sigma:  {:.2f} nm".format(1./fsc_3sigma.x[0])
+     
+            axes[0].plot(freq, half_bit_spl(freq), ls='--', color='purple')
+            axes[0].axvline(fsc_half_bit.x[0], ls='--', color='purple', label='1/2 bit')
+    
+            frc_text += "\n1/2 bit:  {:.2f} nm".format(1./fsc_half_bit.x[0])
+            
+            axes[0].legend()            
+    #        axes[0].set_ylim(None, 1.1)
+            
+            x_ticklocs = axes[0].get_xticks()
+            axes[0].set_xticklabels(["{:.1f}".format(1./i) for i in x_ticklocs])
+            axes[0].set_ylabel("FSC/FRC")
+            axes[0].set_xlabel("Resol (nm)")
+            
+            axes[1].text(0.5, 0.5, frc_text, horizontalalignment='center', verticalalignment='center', transform=axes[1].transAxes)
+            axes[1].set_axis_off()
         
-        axes[0].axhline(0.143, ls='--', color='red')
-        axes[0].axvline(fsc_0143.x[0], ls='--', color='red', label='1/7')
-        frc_text += "\nFRC 1/7:  {:.2f} nm".format(1./fsc_0143.x[0])
- 
-        axes[0].plot(freq, 3*sigma_spl(freq), ls='--', color='pink')
-        axes[0].axvline(fsc_3sigma.x[0], ls='--', color='pink', label='3 sigma')
-        frc_text += "\nFRC 3 sigma:  {:.2f} nm".format(1./fsc_3sigma.x[0])
- 
-        axes[0].plot(freq, half_bit_spl(freq), ls='--', color='purple')
-        axes[0].axvline(fsc_half_bit.x[0], ls='--', color='purple', label='1/2 bit')
-
-        frc_text += "\n1/2 bit:  {:.2f} nm".format(1./fsc_half_bit.x[0])
+#        if self.plot_graphs:
+#            fig.show()
+#        else:
+#            ion()
+            
+        plot()
         
-        axes[0].legend()            
-#        axes[0].set_ylim(None, 1.1)
-        
-        x_ticklocs = axes[0].get_xticks()
-        axes[0].set_xticklabels(["{:.1f}".format(1./i) for i in x_ticklocs])
-        axes[0].set_ylabel("FRC")
-        axes[0].set_xlabel("Resol (nm)")
-        
-        axes[1].text(0.5, 0.5, frc_text, horizontalalignment='center', verticalalignment='center', transform=axes[1].transAxes)
-        axes[1].set_axis_off()
-        
-        if self.plot_graphs:
-            fig.show()
-        else:
-            ion()
-        
-        self._namespace[self.output_frc_plot] = fig
+        self._namespace[self.output_frc_plot] = Plot(plot)
         
         rawdata = {'freq':freq, 'corr':corr, 'smooth':corr_func(x=freq), '1/7':np.ones_like(freq)/7, '3 sigma':3*sigma_spl(freq), '1/2 bit':half_bit_spl(freq)}
         
@@ -288,12 +292,8 @@ class CalculateFRCFromImages(CalculateFRCBase):
         
     Outputs
     -------
-    output_fft_image_a : ImageStack
-        Fast Fourier transform of the first image.
-    output_fft_image_b : ImageStack
-        Fast Fourier transform of the second image.
     output_fft_images_cc : ImageStack
-        Fast Fourier transform cross-correlation.
+        Fast Fourier transform original and cross-correlation images.
     output_frc_dict : dict
         FSC/FRC results.
     output_frc_plot : Plot
@@ -317,8 +317,6 @@ class CalculateFRCFromImages(CalculateFRCBase):
         Methods to smooth the FSC / FRC curve.
     multiprocessing : Bool
         Enables multiprocessing.
-    plot_graphs : Bool
-        Show graphs.
     
     """
     
@@ -420,12 +418,8 @@ class CalculateFRCFromLocs(CalculateFRCBase):
         Localization data labeled with how it was divided (FRC_group).
     output_images : ImageStack
         Pair of 2D or 3D histogram rendered images.
-    output_fft_image_a : ImageStack
-        Fast Fourier transform of the first image.
-    output_fft_image_b : ImageStack
-        Fast Fourier transform of the second image.
     output_fft_images_cc : ImageStack
-        Fast Fourier transform cross-correlation.
+        Fast Fourier transform original and cross-correlation images.
     output_frc_dict : dict
         FSC/FRC results.
     output_frc_plot : Plot
@@ -445,8 +439,6 @@ class CalculateFRCFromLocs(CalculateFRCBase):
         Methods to smooth the FSC / FRC curve.
     multiprocessing : Bool
         Enables multiprocessing.
-    plot_graphs : Bool
-        Show graphs.
     
     """
     inputName = Input('Localizations')
@@ -500,9 +492,9 @@ class CalculateFRCFromLocs(CalculateFRCBase):
         ims = ImageStack(data=np.stack(image_pair, axis=-1), mdh=mdh)
         namespace[self.output_images] = ims
         
-        if self.plot_graphs:
-            from PYME.DSView.dsviewer import ViewIm3D
-            ViewIm3D(ims)
+#        if self.plot_graphs:
+#            from PYME.DSView.dsviewer import ViewIm3D
+#            ViewIm3D(ims)
         
         frc_res, rawdata = self.calculate_FRC_from_images(image_pair, pipeline.mdh)
         
