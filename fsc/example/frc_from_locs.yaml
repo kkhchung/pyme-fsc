@@ -4,27 +4,26 @@
 - tablefilters.FilterTable:
     filters:
       A:
-      - 5.0
-      - 1000.0
+      - 5
+      - 20000
       error_x:
-      - 0.0
-      - 15.0
+      - 0
+      - 30
       error_y:
-      - 0.0
-      - 15.0
+      - 0
+      - 30
       sig:
-      - 95.0
-      - 135.0
+      - 95
+      - 200
     inputName: colour_mapped
     outputName: filtered_localizations
 - fsc.FSCFromLocs:
+    cubic_smoothing: 0.02
     inputName: filtered_localizations
     outputName: FRC_ds
-    output_fft_image_a: FRC_fft_image_a
-    output_fft_image_b: FRC_fft_image_b
     output_fft_images_cc: FRC_fft_images_cc
     output_frc_dict: FRC_dict
     output_frc_plot: FRC_plot
+    output_frc_raw: FRC_raw
     output_images: FRC_images
-    plot_graphs: true
     split_method: halves_time

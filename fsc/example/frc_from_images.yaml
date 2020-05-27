@@ -1,0 +1,10 @@
+- fsc.FSCFromImages:
+    cubic_smoothing: 0.02
+    image_a_z: 0
+    image_b_path: wormlike_simulated_img_pair.h5
+    image_b_z: 1
+    input_image_a: input
+    output_fft_images_cc: FRC_fft_images_cc
+    output_frc_dict: FRC_dict
+    output_frc_plot: FRC_plot
+    output_frc_raw: FRC_raw
