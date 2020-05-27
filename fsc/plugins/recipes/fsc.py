@@ -298,6 +298,8 @@ class CalculateFRCFromImages(CalculateFRCBase):
         FSC/FRC results.
     output_frc_plot : Plot
         Output plot of the FSC / FRC curve.
+    output_frc_raw : dict
+        Complete FSC/FRC results.
     
     Parameters
     ----------
@@ -315,8 +317,12 @@ class CalculateFRCFromImages(CalculateFRCBase):
         Methods to filter the images prior to Fourier transform.
     frc_smoothing_func : string
         Methods to smooth the FSC / FRC curve.
+    cubic_smoothing  : float
+        Smoothing factor for cubic spline.
     multiprocessing : Bool
         Enables multiprocessing.
+    save_path : File
+        (Optional) File path to save output
     
     """
     
@@ -424,12 +430,14 @@ class CalculateFRCFromLocs(CalculateFRCBase):
         FSC/FRC results.
     output_frc_plot : Plot
         Output plot of the FSC / FRC curve.
+    output_frc_raw : dict
+        Complete FSC/FRC results.
     
     Parameters
     ----------
     split_method : string
         Different methods of dividing data into halves.
-    pixel_size_in_nm : int
+    pixel_size_in_nm : float
         Pixel size used for rendering the images.
     flatten_z : Bool
         If enabled ignores z information and only performs a FRC.
@@ -437,8 +445,12 @@ class CalculateFRCFromLocs(CalculateFRCBase):
         Methods to filter the images prior to Fourier transform.
     frc_smoothing_func : string
         Methods to smooth the FSC / FRC curve.
+    cubic_smoothing  : float
+        Smoothing factor for cubic spline.
     multiprocessing : Bool
         Enables multiprocessing.
+    save_path : File
+        (Optional) File path to save output
     
     """
     inputName = Input('Localizations')
