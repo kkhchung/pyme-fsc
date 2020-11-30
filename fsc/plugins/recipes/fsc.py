@@ -48,7 +48,7 @@ class CalculateFRCBase(ModuleBase):
 #        image_pair = self.pad_images_to_equal_dims(image_pair)
         
         dims_length = np.stack([im.shape for im in image_pair], 0)
-        assert np.all([np.all(dims_length[:, i] == dims_length[0, i])for i in xrange(dims_length.shape[1])]), "Images not the same dimension."
+        assert np.all([np.all(dims_length[:, i] == dims_length[0, i])for i in range(dims_length.shape[1])]), "Images not the same dimension."
         
         # apply filtering to zero near edge of images
         if self.pre_filter == 'Tukey_1/8':
@@ -85,7 +85,7 @@ class CalculateFRCBase(ModuleBase):
         
 #        window = tukey(images[0].shape[0], alpha=alpha)
 #        window_nd = np.prod(np.stack(np.meshgrid(*(window,)*images[0].ndim)), axis=0)
-        windows = [tukey(images[0].shape[i], alpha=alpha) for i in xrange(images[0].ndim)]
+        windows = [tukey(images[0].shape[i], alpha=alpha) for i in range(images[0].ndim)]
         window_nd = np.prod(np.stack(np.meshgrid(*windows, indexing='ij')), axis=0)
         
 #        for im in images:
@@ -108,7 +108,7 @@ class CalculateFRCBase(ModuleBase):
         
 #        im_fft_freq = np.fft.fftfreq(image_pair[0].shape[0], self._pixel_size_in_nm)
 #        im_R = np.sqrt(im_fft_freq[:, None]**2 + im_fft_freq[None, :]**2)
-        im_fft_freqs = [np.fft.fftfreq(image_pair[0].shape[i], self._pixel_size_in_nm[i]) for i in xrange(image_pair[0].ndim)]
+        im_fft_freqs = [np.fft.fftfreq(image_pair[0].shape[i], self._pixel_size_in_nm[i]) for i in range(image_pair[0].ndim)]
         im_R = np.linalg.norm(np.stack(np.meshgrid(*im_fft_freqs, indexing='ij')), axis=0)
 
         im1_fft_power = np.multiply(ft_images[0], np.conj(ft_images[0]))
@@ -264,7 +264,7 @@ class CalculateFRCBase(ModuleBase):
         data_sorted = data.flatten()[indexes_sort_arg]
         edges_indexes = np.searchsorted(indexes_sorted, bins)
         
-        for i in xrange(bins.shape[0]-1):
+        for i in range(bins.shape[0]-1):
             values = data_sorted[edges_indexes[i]:edges_indexes[i+1]]
             binned[i] = func(values)
             counts[i] = len(values)
@@ -531,9 +531,9 @@ class CalculateFRCFromLocs(CalculateFRCBase):
         mask = np.zeros(mapped_pipeline['t'].shape, dtype=np.bool)        
         if self.split_method == 'halves_time':
             sort_arg = np.argsort(mapped_pipeline['t'])
-            mask[sort_arg[:len(sort_arg)/2]] = 1
+            mask[sort_arg[:len(sort_arg)//2]] = 1
         elif self.split_method == 'halves_random':
-            mask[:len(mask)/2] = 1
+            mask[:len(mask)//2] = 1
             np.random.shuffle(mask)            
         elif self.split_method == 'halves_100_time_chunk':
             sort_arg = np.argsort(mapped_pipeline['t'])
@@ -550,7 +550,7 @@ class CalculateFRCFromLocs(CalculateFRCBase):
             mask[mapped_pipeline['t'] < time_cutoff] = 1
         elif self.split_method == 'fixed_10_time_chunk':
             time_cutoffs = np.linspace(mapped_pipeline['t'].min(), mapped_pipeline['t'].max(), 11, dtype=np.float)
-            for i in xrange((time_cutoffs.shape[0]-1)//2):
+            for i in range((time_cutoffs.shape[0]-1)//2):
                 mask[(mapped_pipeline['t'] > time_cutoffs[i*2]) & (mapped_pipeline['t'] < time_cutoffs[i*2+1])] = 1
         
         if self.split_method.startswith('halves_'):

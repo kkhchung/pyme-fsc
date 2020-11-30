@@ -2,7 +2,7 @@ from PYME import config
 import os
 import sys
 import pkgutil
-import recipes, dsviewer, visgui # the 3 types of plugins
+from . import recipes, dsviewer, visgui # the 3 types of plugins
 
 def main():
 #    this_dir = os.path.dirname(__file__)
@@ -20,7 +20,7 @@ def main():
         if len(modules_list) > 0:
             print("writing addons to file: {}".format(target_path))
             for val in modules_list:
-                print val
+                print(val)
             with open(target_path, 'w') as f:
                 f.writelines(modules_list)
         
