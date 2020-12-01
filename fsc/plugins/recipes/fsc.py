@@ -331,7 +331,7 @@ class CalculateFRCFromImages(CalculateFRCBase):
 #    image_a_index = Int(0)
 #    image_b_dim = Int(2)
 #    image_b_index = Int(1)
-    image_b_path = File()
+    image_b_path = File(info_text="Filepath of image to compare against. Leave blank to compare against currently opened image.")
     c_channel = Int(0)
     flatten_z = Bool(True)
     image_a_z = Int(-1)
@@ -350,7 +350,11 @@ class CalculateFRCFromImages(CalculateFRCBase):
 #        image_pair = self.generate_image_pair(mapped_pipeline)
 #        ims = namespace[self.input_images]
         image_a = namespace[self.input_image_a]
-        image_b = ImageStack(filename=self.image_b_path)
+
+        if len(self.image_b_path.strip()) == 0:
+            image_b = image_a
+        else:
+            image_b = ImageStack(filename=self.image_b_path)
         
         self._pixel_size_in_nm = np.zeros(3, dtype=np.float)
         self._pixel_size_in_nm[0] = image_a.mdh.voxelsize.x
@@ -361,7 +365,7 @@ class CalculateFRCFromImages(CalculateFRCBase):
             pass
         if image_a.mdh.voxelsize.units == 'um':
             self._pixel_size_in_nm *= 1.E3
-            print(self._pixel_size_in_nm)
+            # print(self._pixel_size_in_nm)
         
 #        image_indices = [[self.image_a_dim, self.image_a_index], [self.image_b_dim, self.image_b_index]]
 #        image_slices = list()
@@ -574,7 +578,7 @@ class CalculateFRCFromLocs(CalculateFRCBase):
             data.append(mapped_pipeline[dim])
         
         data = np.stack(data, axis=1)
-        print(bins)
+        # print(bins)
         
         if self.multiprocessing:
             results = list()
